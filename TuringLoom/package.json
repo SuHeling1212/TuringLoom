@@ -1,0 +1,76 @@
+{
+  "name": "project_template_react",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A Turing Machine Simulator application",
+  "author": "Unknown",
+  "type": "module",
+  "scripts": {
+    "dev:client": "vite --host --port 3000",
+    "dev": "pnpm dev:client",
+    "build:client": "vite build --outDir dist/static --base ./",
+    "copy:assets": "cp preload.js dist/ && cp electron-main.js dist/",
+    "prepare:package": "node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));delete pkg.devDependencies;delete pkg.build;fs.writeFileSync('dist/package.json',JSON.stringify(pkg,null,2))\"",
+    "build": "rm -rf dist && pnpm build:client && pnpm copy:assets && pnpm prepare:package && touch dist/build.flag",
+    "electron:start": "electron .",
+    "electron:package": "electron-builder",
+    "package:win": "if [ ! -d 'node_modules' ]; then pnpm install; fi && pnpm build && electron-builder --win",
+    "package:mac": "if [ ! -d 'node_modules' ]; then pnpm install; fi && pnpm build && electron-builder --mac",
+    "package:linux": "if [ ! -d 'node_modules' ]; then pnpm install; fi && pnpm build && electron-builder --linux",
+    "package:all": "if [ ! -d 'node_modules' ]; then pnpm install; fi && electron-builder --win --mac --linux",
+    "compile:test": "pnpm build && echo 'Compilation test successful!'"
+  },
+  "dependencies": {
+    "clsx": "^2.1.*",
+    "framer-motion": "^12.9.*",
+    "react": "^18.3.*",
+    "react-dom": "^18.3.*",
+    "react-router-dom": "^7.3.*",
+    "recharts": "^2.15.*",
+    "sonner": "^2.0.*",
+    "tailwind-merge": "^3.0.*",
+    "zod": "^3.24.*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.*",
+    "@types/react-dom": "^18.3.*",
+    "@vitejs/plugin-react": "^4.3.*",
+    "autoprefixer": "^10.*",
+    "postcss": "^8.5.*",
+    "tailwindcss": "^3.4.*",
+    "typescript": "~5.7.*",
+    "vite": "^6.2.*",
+    "vite-tsconfig-paths": "^5.1.*",
+    "electron": "^31.0.*",
+    "electron-builder": "^24.13.*"
+  },
+  "main": "electron-main.js",
+  "build": {
+    "appId": "com.turingmachine.simulator",
+    "productName": "图灵机模拟器",
+    "asar": true,
+    "directories": {
+      "app": "dist",
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron-main.js",
+      "preload.js",
+      "static/**/*",
+      "package.json",
+      "!**/node_modules/**",
+      "!src/**",
+      "!tests/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "src/assets/icon.png"
+    }
+  }
+ }
