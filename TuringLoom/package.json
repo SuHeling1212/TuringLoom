@@ -14,7 +14,7 @@
     "build": "rm -rf dist && pnpm build:client && pnpm copy:assets && pnpm prepare:package && touch dist/build.flag",
     "electron:start": "electron .",
     "electron:package": "electron-builder",
-    "package:win": "if [ ! -d 'node_modules' ]; then pnpm install; fi && pnpm build && electron-builder --win",
+    "package:win": "if not exist node_modules pnpm install && pnpm build && electron-builder --win",
     "package:mac": "if [ ! -d 'node_modules' ]; then pnpm install; fi && pnpm build && electron-builder --mac",
     "package:linux": "if [ ! -d 'node_modules' ]; then pnpm install; fi && pnpm build && electron-builder --linux",
     "package:all": "if [ ! -d 'node_modules' ]; then pnpm install; fi && electron-builder --win --mac --linux",
