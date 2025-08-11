@@ -4,6 +4,9 @@
 ```bash
 pnpm install
 ```
+```bash
+pnpm add -D shx
+```
 ## 开发模式
 ```bash
 pnpm dev
