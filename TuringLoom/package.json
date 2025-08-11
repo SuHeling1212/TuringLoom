@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.2",
   "description": "A Turing Machine Simulator application",
-  "author": "Unknown",
+  "author": "SuHeling",
   "type": "module",
   "scripts": {
   "dev:client": "vite --host --port 3000",
