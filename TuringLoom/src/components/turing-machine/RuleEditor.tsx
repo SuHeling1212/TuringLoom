@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { TuringMachineRule, MoveDirection } from '@/lib/types';
 
 import { Translation } from '@/lib/locales';
@@ -13,18 +14,35 @@ interface RuleEditorProps {
   translations: Translation;
 }
 
-// Default values for a new rule
-const DEFAULT_RULE: Omit<TuringMachineRule, 'id'> = {
-  name: 'New Rule',
-  tapeIndex: 0,
-  currentState: 'q0',
-  readSymbol: '0',
-  writeSymbol: '1',
-  moveDirection: 'right',
-  newState: 'q1',
-  shouldHalt: false,
-  nextRuleId: undefined,
-};
+  // Validate rule inputs
+  const validateRule = (rule: Omit<TuringMachineRule, 'id'>, language: 'zh' | 'en'): string | null => {
+    if (!rule.currentState.trim()) {
+      return language === 'zh' ? '当前状态不能为空' : 'Current state cannot be empty';
+    }
+    if (!rule.newState.trim()) {
+      return language === 'zh' ? '新状态不能为空' : 'New state cannot be empty';
+    }
+    if (rule.writeSymbol.length > 1) {
+      return language === 'zh' ? '写入符号只能是单个字符' : 'Write symbol must be a single character';
+    }
+    if (rule.readSymbol.length > 1) {
+      return language === 'zh' ? '读取符号只能是单个字符' : 'Read symbol must be a single character';
+    }
+    return null;
+  };
+
+  // Default values for a new rule
+  const getDefaultRule = (language: 'zh' | 'en'): Omit<TuringMachineRule, 'id'> => ({
+    name: language === 'zh' ? '新规则' : 'New Rule',
+    tapeIndex: 0,
+    currentState: 'q0',
+    readSymbol: '0',
+    writeSymbol: '1',
+    moveDirection: 'right',
+    newState: 'q1',
+    shouldHalt: false,
+    nextRuleId: undefined,
+  });
 
 export default function RuleEditor({ 
   rules, 
@@ -35,13 +53,18 @@ export default function RuleEditor({
   language,
   translations
 }: RuleEditorProps) {
-  const [newRule, setNewRule] = useState<Omit<TuringMachineRule, 'id'>>(DEFAULT_RULE);
+  const [newRule, setNewRule] = useState<Omit<TuringMachineRule, 'id'>>(getDefaultRule(language));
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [editRule, setEditRule] = useState<Omit<TuringMachineRule, 'id'>>(DEFAULT_RULE);
+  const [editRule, setEditRule] = useState<Omit<TuringMachineRule, 'id'>>(getDefaultRule(language));
 
-  const handleAddRule = () => {
+   const handleAddRule = () => {
+    const validationError = validateRule(newRule, language);
+    if (validationError) {
+      toast.error(validationError, { position: 'top-right' });
+      return;
+    }
     onAddRule(newRule);
-    setNewRule(DEFAULT_RULE); // Reset form
+    setNewRule(getDefaultRule(language)); // Reset form
   };
 
   const handleEditRule = (rule: TuringMachineRule) => {
@@ -59,7 +82,12 @@ export default function RuleEditor({
     });
   };
 
-  const handleSaveEdit = (ruleId: string) => {
+   const handleSaveEdit = (ruleId: string) => {
+    const validationError = validateRule(editRule, language);
+    if (validationError) {
+      toast.error(validationError, { position: 'top-right' });
+      return;
+    }
     onUpdateRule({
       id: ruleId,
       ...editRule,

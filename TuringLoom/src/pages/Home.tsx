@@ -42,14 +42,17 @@ export default function Home() {
     setTranslations(getTranslation(newLang));
     localStorage.setItem('preferredLanguage', newLang);
   };
+  
   // Initial tape state with 20 cells and head in the middle
-  const [initialTapeContent, setInitialTapeContent] = useState('00000000000000000000');
+  const defaultInitialContent = '00000000000000000000';
   const [tapes, setTapes] = useState<TapeState[]>([
     {
       id: 'tape-1',
+      type: '1d',
       name: 'Main Tape',
-      cells: initialTapeContent.split(''),
-      headPosition: Math.min(10, initialTapeContent.length - 1),
+      initialContent: defaultInitialContent,
+      cells: defaultInitialContent.split(''),
+      headPosition: Math.min(10, defaultInitialContent.length - 1),
     },
   ]);
   
@@ -81,59 +84,85 @@ export default function Home() {
   };
 
   // 改进的文件导入处理
-  const handleImportRules = (importedRules: TuringMachineRule[]) => {
-    if (!importedRules || importedRules.length === 0) {
-      toast.error('导入的规则为空或格式不正确', { position: 'top-right' });
-      return;
+    // 定义导入数据的接口
+    interface ImportData {
+      rules: TuringMachineRule[];
+      tapeTypes?: Array<{
+        id: string;
+        name: string;
+      }>;
     }
-    
-    // 验证导入的规则格式并找出最大的纸带索引
-    let maxTapeIndex = -1;
-    const validRules = importedRules.filter((rule) => {
-      // 基本验证
-      const isValid = rule.currentState && 
-                     rule.newState && 
-                     rule.tapeIndex >= 0 &&
-                     rule.writeSymbol.length === 1;
-      
-      // 跟踪最大纸带索引
-      if (isValid && rule.tapeIndex > maxTapeIndex) {
-        maxTapeIndex = rule.tapeIndex;
-      }
-      
-      return isValid;
-    });
-    
-    if (validRules.length === 0) {
-      toast.error('导入的规则无效，请检查格式', { position: 'top-right' });
-      return;
-    }
-    
-    // 计算需要的纸带数量 (maxTapeIndex + 1) 并扩展纸带
-    const requiredTapeCount = maxTapeIndex + 1;
-    const currentTapeCount = tapes.length;
-    
-    if (requiredTapeCount > currentTapeCount) {
-      const tapesToAdd = requiredTapeCount - currentTapeCount;
-      // 添加所需的新纸带
-      for (let i = 0; i < tapesToAdd; i++) {
-        addTape();
-      }
-      toast.info(`已自动扩展纸带数量至 ${requiredTapeCount} 个`, { position: 'top-right' });
-    }
-    
-    // 为导入的规则生成新的ID，避免冲突
-    const rulesWithNewIds = validRules.map(rule => ({
-      ...rule,
-      id: `rule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    }));
-    
-    setRules(rulesWithNewIds);
-    setCurrentState('q0');
-    setIsHalted(false);
-    
-    toast.success(`成功导入 ${validRules.length} 条规则`, { position: 'top-right' });
-  };
+
+    const handleImportRules = (importedData: ImportData) => {
+     if (!importedData || !importedData.rules || importedData.rules.length === 0) {
+       toast.error('导入的规则为空或格式不正确', { position: 'top-right' });
+       return;
+     }
+     
+     // 处理导入的纸带类型
+     if (importedData.tapeTypes && importedData.tapeTypes.length > 0) {
+        // 创建新的纸带数组
+         const newTapes: TapeState[] = importedData.tapeTypes.map((tapeType, index) => {
+          // 获取导入的initialContent，如果没有则使用默认值
+          const initialContent = tapeType.initialContent || defaultInitialContent;
+          return {
+            id: tapeType.id,
+            name: tapeType.name,
+            initialContent: initialContent, // 保存初始化内容
+            cells: initialContent.split(''), // 使用导入的初始化内容来初始化cells
+            headPosition: Math.min(10, initialContent.length - 1),
+          };
+        });
+       
+        // 更新纸带状态
+       setTapes(newTapes);
+       toast.info(`已导入 ${newTapes.length} 个纸带`, { position: 'top-right' });
+     }
+     
+     // 验证导入的规则格式
+     const validRules = importedData.rules.filter((rule) => {
+       // 基本验证
+       return rule.currentState && 
+              rule.newState && 
+              rule.tapeIndex >= 0 &&
+              typeof rule.tapeIndex === 'number' &&
+              rule.writeSymbol.length === 1;
+     });
+     
+     if (validRules.length === 0) {
+       toast.error('导入的规则无效，请检查格式', { position: 'top-right' });
+       return;
+     }
+     
+     // 为导入的规则生成新的ID，避免冲突
+     const ruleIdMap: Record<string, string> = {};
+     const rulesWithNewIds = validRules.map(rule => {
+       const newId = `rule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+       ruleIdMap[rule.id] = newId;
+       return {
+         ...rule,
+         id: newId,
+         nextRuleId: undefined // 清除nextRuleId引用，因为它们现在无效
+       };
+     });
+     
+     // 更新规则引用
+     const updatedRules = rulesWithNewIds.map(rule => {
+       if (rule.nextRuleId && ruleIdMap[rule.nextRuleId]) {
+         return {
+           ...rule,
+           nextRuleId: ruleIdMap[rule.nextRuleId]
+         };
+       }
+       return rule;
+     });
+     
+     setRules(updatedRules);
+     setCurrentState('q0');
+     setIsHalted(false);
+     
+     toast.success(`成功导入 ${validRules.length} 条规则`, { position: 'top-right' });
+   };
   
   // Update an existing rule
   const updateRule = (updatedRule: TuringMachineRule) => {
@@ -153,13 +182,15 @@ export default function Home() {
     setRules(rules.filter(rule => rule.id !== ruleId));
   };
   
-   // Add a new tape
+    // Add a new tape
   const addTape = () => {
      const newTape: TapeState = {
       id: `tape-${Date.now()}`, // Use timestamp for unique ID
-      name: `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${tapes.length + 1}`,
-      cells: initialTapeContent.padEnd(20, '0').split(''),
-      headPosition: Math.min(10, initialTapeContent.length - 1),
+      type: '1d',
+      name: `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${tapes.length}`,
+      initialContent: defaultInitialContent,
+      cells: defaultInitialContent.split(''), // 直接使用默认内容分割，不需要额外填充
+      headPosition: Math.min(10, defaultInitialContent.length - 1),
     };
     setTapes([...tapes, newTape]);
   };
@@ -177,7 +208,7 @@ export default function Home() {
       .filter(tape => tape.id !== tapeId)
       .map((tape, index) => ({
         ...tape,
-        name: `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${index + 1}`
+         name: `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${index}`
       }));
     
     setTapes(updatedTapes);
@@ -187,46 +218,36 @@ export default function Home() {
   };
   
   // 使用 useCallback 优化函数，避免不必要的数据重渲染
-  const findCurrentRule = useCallback(() => {
-    // 找到所有匹配当前状态的规则
-    const candidateRules = rules.filter(rule => rule.currentState === currentState);
+  const findMatchingRules = useCallback(() => {
+    // 找到所有匹配当前状态和符号的规则
+    const matchingRules: TuringMachineRule[] = [];
     
-    if (candidateRules.length === 0) return null;
-    
-    // 尝试找到匹配符号的规则
-    for (const rule of candidateRules) {
-      const tape = tapes[rule.tapeIndex];
-      if (!tape) continue;
+    for (const rule of rules) {
+      // 检查规则是否匹配当前状态
+      if (rule.currentState !== currentState) continue;
       
-      const currentSymbol = tape.cells[tape.headPosition];
+      // 获取规则对应的纸带
+      const tape = tapes[rule.tapeIndex];
+      if (!tape || typeof tape.headPosition !== 'number') continue;
+      
+    // 检查规则是否匹配当前符号
+      const currentSymbol = tape.cells[tape.headPosition] || '0';
       if (rule.readSymbol === currentSymbol) {
-        return rule;
+        matchingRules.push(rule);
       }
     }
     
-    // 没有匹配的规则时返回null
-    return null;
+    return matchingRules;
   }, [rules, currentState, tapes]);
 
-  // 改进的步进逻辑
+  // 改进的步进逻辑 - 支持同时执行多个规则
   const handleStep = useCallback(() => {
     if (isHalted) return;
     
-    const currentRule = findCurrentRule();
+    const matchingRules = findMatchingRules();
     
-    if (!currentRule) {
-      toast.error('未找到匹配的规则', { position: 'top-right' });
-      setIsHalted(true);
-      setIsRunning(false);
-      return;
-    }
-    
-    // 获取规则指定的纸带
-    const currentTapeIndex = currentRule.tapeIndex;
-    const currentTape = tapes[currentTapeIndex];
-    
-    if (!currentTape) {
-      toast.error(`指定的纸带 ${currentTapeIndex + 1} 不存在`, { position: 'top-right' });
+    if (matchingRules.length === 0) {
+      toast.error(currentLanguage === 'zh' ? '未找到匹配的规则' : 'No matching rules found', { position: 'top-right' });
       setIsHalted(true);
       setIsRunning(false);
       return;
@@ -234,52 +255,79 @@ export default function Home() {
     
     // 创建纸带的深拷贝
     const newTapes = [...tapes];
-    const newTapeCells = [...currentTape.cells];
+    let newState = currentState;
+    let shouldHalt = false;
     
-    // 写入新符号
-    newTapeCells[currentTape.headPosition] = currentRule.writeSymbol;
-    
-    // 移动纸带头
-    let newHeadPosition = currentTape.headPosition;
-     switch (currentRule.moveDirection) {
-      case 'left':
-        newHeadPosition -= 1;
-        break;
-      case 'right':
-        newHeadPosition += 1;
-        break;
-      case 'stay':
-        break;
+    // 执行所有匹配的规则
+    for (const rule of matchingRules) {
+      // 获取规则指定的纸带
+      const currentTapeIndex = rule.tapeIndex;
+      const currentTape = newTapes[currentTapeIndex];
+      
+      if (!currentTape || typeof currentTape.headPosition !== 'number') {
+        toast.error(currentLanguage === 'zh' ? `指定的纸带 ${currentTapeIndex + 1} 不存在` : `Tape ${currentTapeIndex + 1} does not exist`, { position: 'top-right' });
+        continue;
+      }
+      
+      // 创建纸带单元格的深拷贝
+      const newTapeCells = [...currentTape.cells];
+      
+      // 写入新符号
+      newTapeCells[currentTape.headPosition] = rule.writeSymbol;
+      
+      // 移动纸带头
+      let newHeadPosition = currentTape.headPosition;
+      switch (rule.moveDirection) {
+        case 'left':
+          newHeadPosition -= 1;
+          break;
+        case 'right':
+          newHeadPosition += 1;
+          break;
+        case 'stay':
+          break;
+      }
+      
+      // 确保头位置有效
+      newHeadPosition = Math.max(0, newHeadPosition);
+      
+      // 如果头位置超出当前纸带长度，扩展纸带
+      if (newHeadPosition >= newTapeCells.length - 1) {
+        // 添加新的空白符号
+        newTapeCells.push('0');
+      }
+      
+      // 更新纸带状态
+      newTapes[currentTapeIndex] = {
+        ...currentTape,
+        cells: newTapeCells,
+        headPosition: newHeadPosition
+      };
+      
+      // 更新状态（如果规则指定了新状态）
+      if (rule.newState) {
+        newState = rule.newState;
+      }
+      
+      // 检查是否应该停机
+      if (rule.shouldHalt || rule.newState === 'halt') {
+        shouldHalt = true;
+      }
     }
     
-    // 确保头位置有效
-    newHeadPosition = Math.max(0, newHeadPosition);
-    
-    // 如果头位置超出当前纸带长度，扩展纸带
-    if (newHeadPosition >= newTapeCells.length - 1) {
-      // 添加新的空白符号
-      newTapeCells.push('0');
-    }
-    
-    // 更新纸带状态
-    newTapes[currentTapeIndex] = {
-      ...currentTape,
-      cells: newTapeCells,
-      headPosition: newHeadPosition
-    };
-    
+    // 更新所有纸带
     setTapes(newTapes);
     
     // 更新当前状态
-    setCurrentState(currentRule.newState);
+    setCurrentState(newState);
     
     // 检查是否应该停机
-    if (currentRule.shouldHalt || currentRule.newState === 'halt') {
+    if (shouldHalt) {
       setIsHalted(true);
       setIsRunning(false);
-      toast.success('图灵机已停机', { position: 'top-right' });
-    }
-  }, [findCurrentRule, tapes, setIsHalted, setIsRunning]);
+      toast.success(currentLanguage === 'zh' ? '图灵机已停机' : 'Turing machine halted', { position: 'top-right' });
+     }
+  }, [findMatchingRules, tapes, setIsHalted, setIsRunning, currentLanguage]);
 
    // 模拟速度状态
    const [simulationSpeed, setSimulationSpeed] = useState<string>('medium');
@@ -295,20 +343,22 @@ export default function Home() {
      }
    }, [simulationSpeed]);
    
-   // 模拟执行控制
-   useEffect(() => {
-     let interval: number;
-     
-     if (isRunning && !isHalted) {
-       interval = window.setInterval(() => {
-         handleStep();
-       }, getSpeedDelay());
-     }
-     
-     return () => {
-       if (interval) window.clearInterval(interval);
-     };
-   }, [isRunning, isHalted, getSpeedDelay, handleStep]);
+  // 模拟执行控制 - 添加规则执行反馈
+  useEffect(() => {
+    let interval: number;
+    
+    if (isRunning && !isHalted) {
+      interval = window.setInterval(() => {
+        const matchingRules = findMatchingRules();
+
+        handleStep();
+      }, getSpeedDelay());
+    }
+    
+    return () => {
+      if (interval) window.clearInterval(interval);
+    };
+  }, [isRunning, isHalted, getSpeedDelay, handleStep, findMatchingRules]);
    
    // 处理速度变化
   const handleSpeedChange = (speed: string) => {
@@ -340,15 +390,84 @@ export default function Home() {
     setIsRunning(false);
     setIsHalted(false);
     setCurrentState('q0');
-    // 重置纸带到初始状态
-    setTapes(tapes.map(tape => ({
-      ...tape,
-      cells: initialTapeContent.padEnd(initialTapeContent.length || 20, '0').split(''),
-      headPosition: Math.min(10, initialTapeContent.length - 1)
-    })));
-  }, [tapes, initialTapeContent]);
+    
+    // 重置纸带到各自的初始状态
+    setTapes(tapes.map(tape => {
+      const content = tape.initialContent || defaultInitialContent;
+      return {
+        ...tape,
+        cells: content.padEnd(content.length || 20, '0').split(''),
+        headPosition: content.length > 0 ? Math.min(10, content.length - 1) : 10
+      };
+    }));
+  }, [tapes]);
+   
+   // 处理纸带导入
+   const handleImportTapes = () => {
+     try {
+       // 创建文件输入元素
+       const fileInput = document.createElement('input');
+       fileInput.type = 'file';
+       fileInput.accept = '.json';
+       
+       // 文件选择变化时处理
+       fileInput.onchange = (e) => {
+         const file = (e.target as HTMLInputElement).files?.[0];
+         if (!file) {
+           toast.warning(translations.noFileSelected, { position: 'top-right' });
+           return;
+         }
+         
+         // 读取文件内容
+         const reader = new FileReader();
+         reader.onload = (event) => {
+           try {
+             const content = event.target?.result as string;
+             const importedTapes = JSON.parse(content);
+             
+             // 验证导入的数据格式
+             if (!Array.isArray(importedTapes)) {
+               throw new Error(translations.invalidTapeFormat);
+             }
+             
+              // 处理导入的纸带
+              const newTapes = importedTapes.map((tape: any, index: number) => ({
+                id: `tape-imported-${Date.now()}-${index}`,
+                type: '1d', // 只支持一维纸带
+                initialContent: tape.initialContent || defaultInitialContent,
+                cells: tape.cells || (tape.initialContent || defaultInitialContent).padEnd(20, '0').split(''),
+                headPosition: typeof tape.headPosition === 'number' ? tape.headPosition : 0,
+                name: tape.name || `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${index}`
+              }));
+             
+             // 更新纸带状态
+             setTapes(newTapes);
+             toast.success(`${translations.imported} ${newTapes.length} ${translations.tapes}`, { position: 'top-right' });
+           } catch (parseError) {
+             console.error('解析纸带失败:', parseError);
+             toast.error(`${translations.failedToImportTapes}: ${parseError.message}`, { position: 'top-right' });
+           }
+         };
+         
+         reader.readAsText(file);
+       };
+       
+       // 触发文件选择对话框
+       fileInput.click();
+     } catch (error) {
+       console.error('导入纸带失败:', error);
+       toast.error(translations.failedToImportTapes, { position: 'top-right' });
+     }
+   };
 
-  // 模拟速度状态
+  // 设置单个纸带的初始内容
+  const handleSetInitialContent = (tapeId: string, content: string) => {
+    setTapes(tapes.map(tape => 
+      tape.id === tapeId 
+        ? { ...tape, initialContent: content }
+        : tape
+    ));
+  };
 
 
   return (
@@ -421,54 +540,58 @@ export default function Home() {
               </div>
             </div>
             <div className="p-4 space-y-4">
-              <div className="flex items-center gap-3">
-                <label className={`text-sm font-medium text-slate-700 dark:text-slate-300 w-24 ${
-                  currentLanguage === 'zh' ? 'font-sans' : 'font-mono'
-                }`}>{translations.initialTapeContent}:</label>
-                <input
-                  type="text"
-                  value={initialTapeContent}
-                  onChange={(e) => setInitialTapeContent(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                  placeholder={currentLanguage === 'zh' ? "输入初始纸带符号，例如00101" : "Enter initial tape symbols, e.g., 00101"}
-                  maxLength={50}
-                />
-                <button
-                  onClick={() => {
-                    setTapes(tapes.map(tape => ({
-                      ...tape,
-                      cells: initialTapeContent.padEnd(initialTapeContent.length || 20, '0').split(''),
-                      headPosition: Math.min(10, initialTapeContent.length - 1)
-                    })));
-                  }}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium"
-                >  
-                  {translations.applyInitialContent}
-                </button>
-              </div>
-              <TapeSimulator tapes={tapes} onDeleteTape={handleDeleteTape} />
+               <TapeSimulator 
+                 tapes={tapes} 
+                 onDeleteTape={handleDeleteTape} 
+                 onSetInitialContent={handleSetInitialContent}
+                 language={currentLanguage}
+                 translations={translations}
+               />
             </div>
           </div>
 
-          {/* Control Panel */}
-            <ControlPanel 
-             isRunning={isRunning}
-             isHalted={isHalted}
-             onStep={handleStep}
-             onRun={handleRun}
-             onReset={handleReset}
-             rules={rules}
-             onImportRules={handleImportRules}
-             speed={simulationSpeed}
-             onSpeedChange={handleSpeedChange}
+           {/* Control Panel */}
+             <ControlPanel 
+              isRunning={isRunning}
+              isHalted={isHalted}
+              onStep={handleStep}
+              onRun={handleRun}
+              onReset={handleReset}
+              rules={rules}
+              onImportRules={handleImportRules}
+              speed={simulationSpeed}
+              onSpeedChange={handleSpeedChange}
               language={currentLanguage}
-              translations={translations || getTranslation(currentLanguage)}
+              translations={translations}
               tapes={tapes}
-            />
+              onImportTapes={handleImportTapes}
+             />
         </div>
       </main>
 
-       {/* 语言选择模态框 */}
+        {/* 语言选择模态框 */}
+        {showLanguageSelector && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-w-md p-6 transform transition-all duration-300 scale-100">
+              <h2 className="text-2xl font-bold mb-6 text-center text-slate-800 dark:text-slate-200">{translations.welcome}</h2>
+              <p className="text-center text-slate-600 dark:text-slate-400 mb-8">{translations.selectLanguagePrompt}</p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleLanguageSelect('zh')}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors text-lg"
+                >
+                  {translations.chinese}
+                </button>
+                <button
+                  onClick={() => handleLanguageSelect('en')}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors text-lg"
+                >
+                  {translations.english}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
 
       {/* Footer */}

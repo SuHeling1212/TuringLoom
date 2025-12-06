@@ -38,11 +38,10 @@ export interface TuringMachineRule {
 export interface TapeState {
   id: string;
   type: TapeType;
-  cells: string[] | string[][]; // 1D: string[], 2D: string[][]
-  headPosition: number | { x: number; y: number }; // 1D: number, 2D: {x,y}
+  cells: string[]; // 一维数组
+  headPosition: number; // 一维位置
   name?: string;
-  width?: number; // 仅用于2D纸带
-  height?: number; // 仅用于2D纸带
+  initialContent?: string; // 纸带初始化内容
 }
 
 /**

@@ -3,9 +3,18 @@ import { TapeState } from '@/lib/types';
 interface TapeSimulatorProps {
   tapes: TapeState[];
   onDeleteTape: (tapeId: string) => void;
+  onSetInitialContent: (tapeId: string, content: string) => void;
+  language: 'zh' | 'en';
+  translations: any;
 }
 
-export default function TapeSimulator({ tapes, onDeleteTape }: TapeSimulatorProps) {
+export default function TapeSimulator({ 
+  tapes, 
+  onDeleteTape,
+  onSetInitialContent,
+  language,
+  translations
+}: TapeSimulatorProps) {
   return (
     <div className="space-y-8">
       {tapes.map((tape) => (
@@ -33,62 +42,67 @@ export default function TapeSimulator({ tapes, onDeleteTape }: TapeSimulatorProp
             </div>
           </div>
           
-          {/* Tape visualization */}
-           <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 overflow-x-auto">
-             <div className="inline-flex items-center space-x-0.5 min-w-full justify-center">
-                {Array.isArray(tape.cells) && tape.cells.length > 0 ?
-                  Array.isArray(tape.cells[0]) ? (
-                    // 处理意外二维数组的降级显示
-                    (tape.cells.flat() as string[]).map((cell, index) => (
-                      <div 
-                        key={`${tape.id}-${index}`}
-                        className={`w-10 h-10 flex items-center justify-center border text-slate-900 dark:text-slate-100 ${
-                          typeof tape.headPosition === 'number' && index === tape.headPosition 
-                            ? 'border-blue-500 bg-blue-100 dark:bg-blue-900 dark:border-blue-400' 
-                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'
-                        } rounded-md font-mono text-sm transition-all`}
-                      >
-                        {cell === ' ' ? <span className="text-slate-300 dark:text-slate-600">␣</span> : (cell || '0')}
-                      </div>
-                    ))
-                  ) : (
-                    (tape.cells as string[]).map((cell, index) => (
-                      <div 
-                        key={`${tape.id}-${index}`}
-                        className={`w-10 h-10 flex items-center justify-center border text-slate-900 dark:text-slate-100 ${
-                          typeof tape.headPosition === 'number' && index === tape.headPosition 
-                            ? 'border-blue-500 bg-blue-100 dark:bg-blue-900 dark:border-blue-400' 
-                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'
-                        } rounded-md font-mono text-sm transition-all`}
-                      >
-                        {cell === ' ' ? <span className="text-slate-300 dark:text-slate-600">␣</span> : (cell || '0')}
-                      </div>
-                    ))
-                  )
-                : (
-                  <div className="text-center py-4 text-slate-500 dark:text-slate-400">
-                    纸带为空，请设置初始内容
-                  </div>
-                )}
-              </div>
+          {/* Tape Initial Content Input */}
+          <div className="flex items-center gap-3">
+            <label className={`text-sm font-medium text-slate-700 dark:text-slate-300 w-24 ${
+              language === 'zh' ? 'font-sans' : 'font-mono'
+            }`}>
+              {translations.initialTapeContent}:
+            </label>
+            <input
+              type="text"
+              value={tape.initialContent || ''}
+              onChange={(e) => onSetInitialContent(tape.id, e.target.value)}
+              className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+              placeholder={language === 'zh' ? "输入初始符号，例如00101" : "Enter initial symbols, e.g., 00101"}
+              maxLength={50}
+            />
+            <button
+              onClick={() => {
+                const content = tape.initialContent || '00000000000000000000';
+                onSetInitialContent(tape.id, content);
+              }}
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium"
+              title={translations.applyInitialContent}
+            >
+              <i className="fa-solid fa-play"></i>
+            </button>
           </div>
           
-          {/* Tape position indicators */}
-           <div className="flex justify-center text-xs text-slate-500 dark:text-slate-400">
-            <div className="flex justify-between w-full max-w-md">
-              <span>0</span>
-              <span>{Math.floor(tape.cells.length / 2)}</span>
-              <span>{tape.cells.length - 1}</span>
-            </div>
-          </div>
+           {/* Tape visualization */}
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 overflow-x-auto">
+              <div className="inline-flex items-center space-x-0.5 min-w-full justify-center">
+                  {Array.isArray(tape.cells) && tape.cells.length > 0 ? (
+                       // 处理一维数组
+                       tape.cells.map((cell, index) => (
+                         <div 
+                           key={`${tape.id}-${index}`}
+                           className={`w-10 h-10 flex items-center justify-center border text-slate-900 dark:text-slate-100 ${
+                             index === tape.headPosition 
+                               ? 'border-blue-500 bg-blue-100 dark:bg-blue-900 dark:border-blue-400' 
+                               : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900'
+                           } rounded-md font-mono text-sm transition-all`}
+                         >
+                           {cell === ' ' ? <span className="text-slate-300 dark:text-slate-600">␣</span> : (cell || '0')}
+                         </div>
+                       ))
+                  ) : (
+                    <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+                      {translations.tapeIsEmpty}
+                    </div>
+                  )}
+               </div>
+           </div>
+          
+          
         </div>
       ))}
       
       {tapes.length === 0 && (
         <div className="text-center py-12 bg-slate-100 dark:bg-slate-800 rounded-lg">
            <i className="fa-regular fa-file-lines text-4xl text-slate-400 dark:text-slate-500 mb-3"></i>
-           <p className="text-slate-500 dark:text-slate-400">无可用纸带</p>
-           <p className="text-sm mt-1 text-slate-400 dark:text-slate-500">使用上方按钮添加纸带</p>
+           <p className="text-slate-500 dark:text-slate-400">{translations.tapeIsEmpty}</p>
+           <p className="text-sm mt-1 text-slate-400 dark:text-slate-500">{translations.setInitialContent}</p>
         </div>
       )}
     </div>
