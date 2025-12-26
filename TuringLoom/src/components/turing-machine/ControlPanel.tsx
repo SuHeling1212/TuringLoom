@@ -5,6 +5,14 @@ import { toast } from 'sonner';
 
 import { Translation } from '@/lib/locales';
 
+interface ImportData {
+  rules: TuringMachineRule[];
+  tapeTypes?: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
 interface ControlPanelProps {
   isRunning: boolean;
   isHalted: boolean;
@@ -14,10 +22,11 @@ interface ControlPanelProps {
   rules: TuringMachineRule[];
   speed: string;
   onSpeedChange: (speed: string) => void;
-  onImportRules: (rules: TuringMachineRule[]) => void;
+  onImportRules: (data: ImportData) => void;
   tapes: TapeState[];
   language: 'zh' | 'en';
   translations: Translation;
+  onImportTapes: () => void;
 }
 
 
@@ -35,13 +44,14 @@ const exportRules = (rules: TuringMachineRule[], tapes: TapeState[]) => {
     }
     
     // 创建JSON字符串，添加缩进以提高可读性
-     // 添加纸带类型信息到导出数据
+    // 添加纸带类型和初始化内容信息到导出数据
     const exportData = {
       rules,
       tapeTypes: tapes.map(tape => ({
         id: tape.id,
         name: tape.name,
-        type: tape.type
+        type: tape.type,
+        initialContent: tape.initialContent // 保存纸带初始化内容
       }))
     };
     
@@ -129,27 +139,27 @@ export default function ControlPanel({
     }
   };
 
-  const handleConfirmImport = () => {
+   const handleConfirmImport = () => {
     if (!fileToImport) return;
     
     // 读取文件内容
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const content = event.target?.result as string;
-        const importedRules = JSON.parse(content) as TuringMachineRule[];
-        
-        // 验证导入的规则格式
-        if (!Array.isArray(importedRules)) {
-          throw new Error('导入的规则格式不正确');
-        }
-        
-        // 调用导入回调函数
-        onImportRules(importedRules);
-        toast.success(`成功导入 ${importedRules.length} 条规则`, { position: 'top-right' });
+         const content = event.target?.result as string;
+         const importData = JSON.parse(content);
+         
+         // 验证导入的数据结构
+         if (!importData || typeof importData !== 'object' || !Array.isArray(importData.rules)) {
+           throw new Error('导入的规则格式不正确，缺少规则数组');
+         }
+         
+         // 调用导入回调函数，传递完整的导入数据
+         onImportRules(importData);
+         toast.success(`成功导入 ${importData.rules.length} 条规则`, { position: 'top-right' });
       } catch (parseError) {
         console.error('解析规则失败:', parseError);
-        toast.error('解析规则失败，请确保文件格式正确', { position: 'top-right' });
+        toast.error(`解析规则失败: ${parseError.message}`, { position: 'top-right' });
       }
     };
     
@@ -313,7 +323,7 @@ export default function ControlPanel({
         }
       ];
                     
-                    if (onImportRules) {
+                     if (typeof onImportRules === 'function') {
                       onImportRules(exampleRules);
                       toast.success(language === 'zh' ? '已加载示例规则' : 'Example rules loaded', { position: 'top-right' });
                     } else {

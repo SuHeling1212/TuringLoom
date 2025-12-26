@@ -52,6 +52,12 @@ export interface Translation {
   chinese: string;
   english: string;
   welcome: string;
+  importTapes: string;
+  noFileSelected: string;
+  invalidTapeFormat: string;
+  imported: string;
+  tapes: string;
+  failedToImportTapes: string;
   selectLanguagePrompt: string;
 }
 
@@ -110,7 +116,13 @@ export const translations = {
     chinese: "中文",
     english: "英文",
     welcome: "欢迎使用图灵机模拟器",
-    selectLanguagePrompt: "请选择您的语言 / Please select your language"
+    selectLanguagePrompt: "请选择您的语言 / Please select your language",
+    importTapes: "导入纸带",
+    noFileSelected: "未选择文件",
+    invalidTapeFormat: "无效的纸带格式",
+    imported: "已导入",
+    tapes: "个纸带",
+    failedToImportTapes: "导入纸带失败"
   },
   en: {
     appTitle: "Turing Machine Simulator",
@@ -166,7 +178,13 @@ export const translations = {
     chinese: "Chinese",
     english: "English",
     welcome: "Welcome to Turing Machine Simulator",
-    selectLanguagePrompt: "请选择您的语言 / Please select your language"
+    selectLanguagePrompt: "请选择您的语言 / Please select your language",
+    importTapes: "Import Tapes",
+    noFileSelected: "No file selected",
+    invalidTapeFormat: "Invalid tape format",
+    imported: "Imported",
+    tapes: "tapes",
+    failedToImportTapes: "Failed to import tapes"
   }
 };
 
