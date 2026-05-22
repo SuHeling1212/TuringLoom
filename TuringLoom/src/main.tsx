@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from 'sonner';
 import App from "./App.tsx";
 import "./index.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 
 // 检查是否在浏览器环境中运行
 if (typeof window !== 'undefined') {

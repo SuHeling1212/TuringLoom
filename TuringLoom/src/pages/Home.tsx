@@ -4,8 +4,26 @@ import { TapeState, TuringMachineRule } from '@/lib/types';
 import RuleEditor from '@/components/turing-machine/RuleEditor';
 import TapeSimulator from '@/components/turing-machine/TapeSimulator';
 import ControlPanel from '@/components/turing-machine/ControlPanel';
+import * as api from '@/lib/api';
 
 import { getTranslation } from '@/lib/locales';
+
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return window.localStorage?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      window.localStorage?.setItem(key, value);
+    } catch {
+      // localStorage not available
+    }
+  }
+};
 
 export default function Home() {
   // 语言选择状态管理
@@ -15,7 +33,7 @@ export default function Home() {
   // 初始化语言设置
   useEffect(() => {
     // 检查localStorage中是否有保存的语言偏好
-    const savedLanguage = localStorage.getItem('preferredLanguage') as 'zh' | 'en';
+    const savedLanguage = safeLocalStorage.getItem('preferredLanguage') as 'zh' | 'en' | null;
     
     if (savedLanguage) {
       // 应用保存的语言偏好
@@ -31,7 +49,7 @@ export default function Home() {
   const handleLanguageSelect = (lang: 'zh' | 'en') => {
     setCurrentLanguage(lang);
     setTranslations(getTranslation(lang));
-    localStorage.setItem('preferredLanguage', lang);
+    safeLocalStorage.setItem('preferredLanguage', lang);
     setShowLanguageSelector(false);
   };
   
@@ -40,7 +58,7 @@ export default function Home() {
     const newLang = currentLanguage === 'zh' ? 'en' : 'zh';
     setCurrentLanguage(newLang);
     setTranslations(getTranslation(newLang));
-    localStorage.setItem('preferredLanguage', newLang);
+    safeLocalStorage.setItem('preferredLanguage', newLang);
   };
   
   // Initial tape state with 20 cells and head in the middle
@@ -220,160 +238,43 @@ export default function Home() {
     toast.success(translations.tapeDeleted, { position: 'top-right' });
   };
   
-  // 使用 useCallback 优化函数，避免不必要的数据重渲染
-  const findMatchingRules = useCallback(() => {
-    // 找到所有匹配当前状态和符号的规则
-    const matchingRules: TuringMachineRule[] = [];
-    
-    for (const rule of rules) {
-      // 检查规则是否匹配当前状态（stateAny 为 true 时匹配任意状态）
-      if (!rule.stateAny && rule.currentState !== currentState) continue;
-      
-      // 获取规则对应的纸带
-      const tape = tapes[rule.tapeIndex];
-      if (!tape || typeof tape.headPosition !== 'number') continue;
-      
-    // 检查规则是否匹配当前符号（readAny 为 true 时匹配任意符号）
-      const currentSymbol = tape.cells[tape.headPosition] || '0';
-      if (rule.readAny || rule.readSymbol === currentSymbol) {
-        matchingRules.push(rule);
-      }
-    }
-    
-    // 检测重复规则：相同状态+相同符号+相同纸带（考虑 readAny 和 stateAny）
-    const ruleKeyMap = new Map<string, TuringMachineRule[]>();
-    for (const rule of matchingRules) {
-      // 生成 key：stateAny 时用 "*"，否则用实际状态；readAny 时用 "*"，否则用实际符号
-      const stateKey = rule.stateAny ? '*' : rule.currentState;
-      const symbolKey = rule.readAny ? '*' : rule.readSymbol;
-      const key = `${stateKey}|${symbolKey}|${rule.tapeIndex}`;
-      if (!ruleKeyMap.has(key)) {
-        ruleKeyMap.set(key, []);
-      }
-      ruleKeyMap.get(key)!.push(rule);
-    }
-    
-    // 查找重复的规则组
-    for (const [key, rulesList] of ruleKeyMap) {
-      if (rulesList.length > 1) {
-        const ruleNames = rulesList.map(r => `"${r.name}"`).join(', ');
-        return { matchingRules: [], hasDuplicate: true, duplicateRules: ruleNames, duplicateKey: key };
-      }
-    }
-    
-    return { matchingRules, hasDuplicate: false, duplicateRules: null, duplicateKey: null };
-  }, [rules, currentState, tapes]);
-
-  // 改进的步进逻辑 - 支持同时执行多个规则
-  const handleStep = useCallback(() => {
+  const handleStep = useCallback(async () => {
     if (isHalted) return;
     
-    const result = findMatchingRules();
-    
-    if (result.hasDuplicate) {
-      const errorMsg = currentLanguage === 'zh' 
-        ? `存在重复规则: ${result.duplicateRules}（相同状态、符号、纸带），无法确定执行哪个规则`
-        : `Duplicate rules found: ${result.duplicateRules} (same state, symbol, tape), cannot determine which rule to execute`;
-      toast.error(errorMsg, { position: 'top-right' });
-      setIsHalted(true);
-      setIsRunning(false);
-      return;
-    }
-    
-    const matchingRules = result.matchingRules;
-    
-    if (matchingRules.length === 0) {
-      toast.error(currentLanguage === 'zh' ? '未找到匹配的规则' : 'No matching rules found', { position: 'top-right' });
-      setIsHalted(true);
-      setIsRunning(false);
-      return;
-    }
-    
-    // 创建纸带的深拷贝
-    const newTapes = [...tapes];
-    let newState = currentState;
-    let shouldHalt = false;
-    
-    // 执行所有匹配的规则
-    for (const rule of matchingRules) {
-      // 获取规则指定的纸带
-      const currentTapeIndex = rule.tapeIndex;
-      const currentTape = newTapes[currentTapeIndex];
+    try {
+      const response = await api.step({
+        rules,
+        tapes,
+        currentState,
+      });
       
-      if (!currentTape || typeof currentTape.headPosition !== 'number') {
-        toast.error(currentLanguage === 'zh' ? `指定的纸带 ${currentTapeIndex + 1} 不存在` : `Tape ${currentTapeIndex + 1} does not exist`, { position: 'top-right' });
-        continue;
-      }
-      
-       // 创建纸带单元格的深拷贝
-       let newTapeCells = [...currentTape.cells];
-      
-      // 写入新符号
-      newTapeCells[currentTape.headPosition] = rule.writeSymbol;
-      
-      // 移动纸带头
-      let newHeadPosition = currentTape.headPosition;
-      switch (rule.moveDirection) {
-        case 'left':
-          newHeadPosition -= 1;
-          break;
-        case 'right':
-          newHeadPosition += 1;
-          break;
-        case 'stay':
-          break;
-      }
-      
-       // 如果头位置为负数，向左扩展纸带
-      if (newHeadPosition < 0) {
-        // 在纸带左侧添加新的空白符号
-        const numNewCells = Math.abs(newHeadPosition);
-        const newCells = Array(numNewCells).fill('0').concat(newTapeCells);
-        // 更新头位置为0
-        newTapeCells = newCells;
-        newHeadPosition = 0;
-      }
-      
-      // 如果头位置超出当前纸带长度，向右扩展纸带
-      if (newHeadPosition >= newTapeCells.length) {
-        // 在纸带右侧添加新的空白符号
-        const numNewCells = newHeadPosition - newTapeCells.length + 1;
-        for (let i = 0; i < numNewCells; i++) {
-          newTapeCells.push('0');
+      if (!response.success) {
+        if (response.duplicateRules && response.duplicateRules.length > 0) {
+          const errorMsg = currentLanguage === 'zh'
+            ? `存在重复规则: ${response.duplicateRules.join(', ')}（相同状态、符号、纸带），无法确定执行哪个规则`
+            : `Duplicate rules found: ${response.duplicateRules.join(', ')} (same state, symbol, tape), cannot determine which rule to execute`;
+          toast.error(errorMsg, { position: 'top-right' });
+        } else {
+          toast.error(response.message, { position: 'top-right' });
         }
+        setIsHalted(true);
+        setIsRunning(false);
+        return;
       }
       
-      // 更新纸带状态
-      newTapes[currentTapeIndex] = {
-        ...currentTape,
-        cells: newTapeCells,
-        headPosition: newHeadPosition
-      };
+      setTapes(response.tapes);
+      setCurrentState(response.finalState);
       
-      // 更新状态（如果规则指定了新状态）
-      if (rule.newState) {
-        newState = rule.newState;
+      if (response.halted) {
+        setIsHalted(true);
+        setIsRunning(false);
+        toast.success(currentLanguage === 'zh' ? '图灵机已停机' : 'Turing machine halted', { position: 'top-right' });
       }
-      
-      // 检查是否应该停机
-      if (rule.shouldHalt || rule.newState === 'halt') {
-        shouldHalt = true;
-      }
-    }
-    
-    // 更新所有纸带
-    setTapes(newTapes);
-    
-    // 更新当前状态
-    setCurrentState(newState);
-    
-    // 检查是否应该停机
-    if (shouldHalt) {
-      setIsHalted(true);
+    } catch (error) {
+      toast.error(currentLanguage === 'zh' ? 'API调用失败' : 'API call failed', { position: 'top-right' });
       setIsRunning(false);
-      toast.success(currentLanguage === 'zh' ? '图灵机已停机' : 'Turing machine halted', { position: 'top-right' });
-     }
-  }, [findMatchingRules, tapes, setIsHalted, setIsRunning, currentLanguage]);
+    }
+  }, [rules, tapes, currentState, isHalted, currentLanguage]);
 
    // 模拟速度状态
    const [simulationSpeed, setSimulationSpeed] = useState<string>('medium');
@@ -529,7 +430,7 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className={`text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ${
+          <h1 className={`text-2xl font-bold text-blue-600 ${
             currentLanguage === 'zh' ? 'font-sans' : 'font-mono'
           }`}>
             {translations.appTitle}

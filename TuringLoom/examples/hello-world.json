@@ -21,7 +21,7 @@
       "shouldHalt": false
     },
     {
-      "name": "Write l (1st)",
+      "name": "Write l",
       "tapeIndex": 0,
       "currentState": "q2",
       "readSymbol": "0",
@@ -31,7 +31,7 @@
       "shouldHalt": false
     },
     {
-      "name": "Write l (2nd)",
+      "name": "Write l",
       "tapeIndex": 0,
       "currentState": "q3",
       "readSymbol": "0",
@@ -71,7 +71,7 @@
       "shouldHalt": false
     },
     {
-      "name": "Write o (2nd)",
+      "name": "Write o",
       "tapeIndex": 0,
       "currentState": "q7",
       "readSymbol": "0",
@@ -91,7 +91,7 @@
       "shouldHalt": false
     },
     {
-      "name": "Write l (3rd)",
+      "name": "Write l",
       "tapeIndex": 0,
       "currentState": "q9",
       "readSymbol": "0",
@@ -116,7 +116,7 @@
       "id": "tape-1",
       "name": "Output Tape",
       "type": "1d",
-      "initialContent": "我操你吗"
+      "initialContent": "0000000000000"
     }
   ]
 }

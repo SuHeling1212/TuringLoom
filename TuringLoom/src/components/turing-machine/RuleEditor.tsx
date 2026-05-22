@@ -143,10 +143,10 @@ export default function RuleEditor({
                   value={newRule.currentState}
                   onChange={(e) => setNewRule({...newRule, currentState: e.target.value})}  
                   disabled={newRule.stateAny}
-                  className={`flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${newRule.stateAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 min-w-0 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${newRule.stateAny ? 'opacity-50 cursor-not-allowed' : ''}`}
                   placeholder={language === 'zh' ? "例如 q0" : "e.g., q0"}
                 />
-                <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer shrink-0">
                   <input
                     type="checkbox"
                     checked={newRule.stateAny || false}
@@ -167,10 +167,10 @@ export default function RuleEditor({
                    value={newRule.readSymbol}
                    onChange={(e) => setNewRule({...newRule, readSymbol: e.target.value})}
                    disabled={newRule.readAny}
-                   className={`flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${newRule.readAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   className={`flex-1 min-w-0 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${newRule.readAny ? 'opacity-50 cursor-not-allowed' : ''}`}
                    placeholder={language === 'zh' ? "例如 0" : "e.g., 0"}
                  />
-                 <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                 <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer shrink-0">
                    <input
                      type="checkbox"
                      checked={newRule.readAny || false}
@@ -305,9 +305,9 @@ export default function RuleEditor({
                              value={editRule.currentState}
                              onChange={(e) => setEditRule({...editRule, currentState: e.target.value})}
                              disabled={editRule.stateAny}
-                             className={`flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${editRule.stateAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                             className={`flex-1 min-w-0 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${editRule.stateAny ? 'opacity-50 cursor-not-allowed' : ''}`}
                            />
-                           <label className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                           <label className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer shrink-0">
                              <input
                                type="checkbox"
                                checked={editRule.stateAny || false}
@@ -328,9 +328,9 @@ export default function RuleEditor({
                    value={editRule.readSymbol}
                    onChange={(e) => setEditRule({...editRule, readSymbol: e.target.value})}
                    disabled={editRule.readAny}
-                   className={`flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${editRule.readAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   className={`flex-1 min-w-0 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${editRule.readAny ? 'opacity-50 cursor-not-allowed' : ''}`}
                  />
-                 <label className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                 <label className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer shrink-0">
                    <input
                      type="checkbox"
                      checked={editRule.readAny || false}

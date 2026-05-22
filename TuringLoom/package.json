@@ -12,6 +12,7 @@
     "compile:test": "pnpm build && echo 'Compilation test successful!'"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "6.7.2",
     "clsx": "^2.1.*",
     "framer-motion": "^12.9.*",
     "react": "^18.3.*",
