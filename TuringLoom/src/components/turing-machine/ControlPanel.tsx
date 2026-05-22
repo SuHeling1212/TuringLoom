@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { TuringMachineRule } from '@/lib/types';
-import { TapeState } from '@/lib/types';
+import { TuringMachineRule, TapeState, MoveDirection } from '@/lib/types';
 import { toast } from 'sonner';
 
 import { Translation } from '@/lib/locales';
@@ -45,13 +44,18 @@ const exportRules = (rules: TuringMachineRule[], tapes: TapeState[]) => {
     
     // 创建JSON字符串，添加缩进以提高可读性
     // 添加纸带类型和初始化内容信息到导出数据
+    // 当 readAny/stateAny 为 true 时，清空对应字段使导出更清晰
     const exportData = {
-      rules,
+      rules: rules.map(rule => ({
+        ...rule,
+        readSymbol: rule.readAny ? '' : rule.readSymbol,
+        currentState: rule.stateAny ? '' : rule.currentState
+      })),
       tapeTypes: tapes.map(tape => ({
         id: tape.id,
         name: tape.name,
         type: tape.type,
-        initialContent: tape.initialContent // 保存纸带初始化内容
+        initialContent: tape.initialContent
       }))
     };
     
@@ -159,7 +163,7 @@ export default function ControlPanel({
          toast.success(`成功导入 ${importData.rules.length} 条规则`, { position: 'top-right' });
       } catch (parseError) {
         console.error('解析规则失败:', parseError);
-        toast.error(`解析规则失败: ${parseError.message}`, { position: 'top-right' });
+        toast.error(`解析规则失败: ${(parseError as Error).message}`, { position: 'top-right' });
       }
     };
     
@@ -309,14 +313,14 @@ export default function ControlPanel({
                     
       // 生成唯一ID的示例规则 - 将所有0转换为1
       const baseId = Date.now();
-      const exampleRules = [
+      const exampleRules: TuringMachineRule[] = [
         {
           "name": language === 'zh' ? "转换0为1" : "Convert 0 to 1",
           "tapeIndex": validTapeIndex,
           "currentState": "q0",
           "readSymbol": "0",
           "writeSymbol": "1",
-          "moveDirection": "right",
+          "moveDirection": "right" as MoveDirection,
           "newState": "q0",
           "shouldHalt": false,
           "id": `rule-${baseId}-1`
@@ -324,7 +328,7 @@ export default function ControlPanel({
       ];
                     
                      if (typeof onImportRules === 'function') {
-                      onImportRules(exampleRules);
+                      onImportRules({ rules: exampleRules });
                       toast.success(language === 'zh' ? '已加载示例规则' : 'Example rules loaded', { position: 'top-right' });
                     } else {
                       toast.error(language === 'zh' ? '导入功能未初始化' : 'Import function not initialized', { position: 'top-right' });

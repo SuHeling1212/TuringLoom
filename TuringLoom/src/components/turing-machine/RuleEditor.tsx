@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { TuringMachineRule, MoveDirection } from '@/lib/types';
+import { TuringMachineRule, MoveDirection, TapeState } from '@/lib/types';
 
 import { Translation } from '@/lib/locales';
 
 interface RuleEditorProps {
   rules: TuringMachineRule[];
-  tapeCount: number;
+  tapes: TapeState[];
   onAddRule: (rule: Omit<TuringMachineRule, 'id'>) => void;
   onUpdateRule: (rule: TuringMachineRule) => void;
   onRemoveRule: (ruleId: string) => void;
@@ -37,6 +37,8 @@ interface RuleEditorProps {
     tapeIndex: 0,
     currentState: 'q0',
     readSymbol: '0',
+    readAny: false,
+    stateAny: false,
     writeSymbol: '1',
     moveDirection: 'right',
     newState: 'q1',
@@ -46,7 +48,7 @@ interface RuleEditorProps {
 
 export default function RuleEditor({ 
   rules, 
-  tapeCount,
+  tapes,
   onAddRule, 
   onUpdateRule, 
   onRemoveRule,
@@ -74,6 +76,8 @@ export default function RuleEditor({
       tapeIndex: rule.tapeIndex,
       currentState: rule.currentState,
       readSymbol: rule.readSymbol,
+      readAny: rule.readAny,
+      stateAny: rule.stateAny,
       writeSymbol: rule.writeSymbol,
       moveDirection: rule.moveDirection,
       newState: rule.newState,
@@ -125,33 +129,57 @@ export default function RuleEditor({
                onChange={(e) => setNewRule({...newRule, tapeIndex: parseInt(e.target.value)})}
                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
              >
-                {Array.from({ length: tapeCount }).map((_, i) => (
-                  <option key={i} value={i}>{language === 'zh' ? `纸带 ${i}` : `Tape ${i}`}</option>
+                {tapes.map((tape, i) => (
+                  <option key={i} value={i}>{tape.name || (language === 'zh' ? `纸带 ${i}` : `Tape ${i}`)}</option>
                 ))}
              </select>
            </div>
            
            <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{translations.currentStateInput}</label>
-             <input
-               type="text"
-               value={newRule.currentState}
-               onChange={(e) => setNewRule({...newRule, currentState: e.target.value})}  
-               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-               placeholder={language === 'zh' ? "例如 q0" : "e.g., q0"}
-             />
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={newRule.currentState}
+                  onChange={(e) => setNewRule({...newRule, currentState: e.target.value})}  
+                  disabled={newRule.stateAny}
+                  className={`flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${newRule.stateAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  placeholder={language === 'zh' ? "例如 q0" : "e.g., q0"}
+                />
+                <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newRule.stateAny || false}
+                    onChange={(e) => setNewRule({...newRule, stateAny: e.target.checked})}
+                    className="rounded border-slate-300 dark:border-slate-600"
+                  />
+                  {language === 'zh' ? '任意' : 'Any'}
+                </label>
+              </div>
            </div>
            
             
             <div>
                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{translations.readSymbol}</label>
-               <input
-                 type="text"
-                 value={newRule.readSymbol}
-                 onChange={(e) => setNewRule({...newRule, readSymbol: e.target.value})}
-                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                 placeholder={language === 'zh' ? "例如 0" : "e.g., 0"}
-               />
+               <div className="flex gap-2 items-center">
+                 <input
+                   type="text"
+                   value={newRule.readSymbol}
+                   onChange={(e) => setNewRule({...newRule, readSymbol: e.target.value})}
+                   disabled={newRule.readAny}
+                   className={`flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${newRule.readAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   placeholder={language === 'zh' ? "例如 0" : "e.g., 0"}
+                 />
+                 <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                   <input
+                     type="checkbox"
+                     checked={newRule.readAny || false}
+                     onChange={(e) => setNewRule({...newRule, readAny: e.target.checked})}
+                     className="rounded border-slate-300 dark:border-slate-600"
+                   />
+                   {language === 'zh' ? '任意' : 'Any'}
+                 </label>
+               </div>
              </div>
              
              <div>
@@ -263,31 +291,55 @@ export default function RuleEditor({
                            onChange={(e) => setEditRule({...editRule, tapeIndex: parseInt(e.target.value)})}
                            className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                          >
-                           {Array.from({ length: tapeCount }).map((_, i) => (
-                              <option key={i} value={i}>{language === 'zh' ? `纸带 ${i}` : `Tape ${i}`}</option>
+                           {tapes.map((tape, i) => (
+                              <option key={i} value={i}>{tape.name || (language === 'zh' ? `纸带 ${i}` : `Tape ${i}`)}</option>
                            ))}
                          </select>
                        </div>
                        
                        <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{translations.currentStateInput}</label>
-                         <input
-                           type="text"
-                           value={editRule.currentState}
-                           onChange={(e) => setEditRule({...editRule, currentState: e.target.value})}
-                           className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                         />
+                         <div className="flex gap-2 items-center">
+                           <input
+                             type="text"
+                             value={editRule.currentState}
+                             onChange={(e) => setEditRule({...editRule, currentState: e.target.value})}
+                             disabled={editRule.stateAny}
+                             className={`flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${editRule.stateAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                           />
+                           <label className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                             <input
+                               type="checkbox"
+                               checked={editRule.stateAny || false}
+                               onChange={(e) => setEditRule({...editRule, stateAny: e.target.checked})}
+                               className="rounded border-slate-300 dark:border-slate-600"
+                             />
+                             {language === 'zh' ? '任意' : 'Any'}
+                           </label>
+                         </div>
                        </div>
                        
                         
                         <div>
                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{translations.readSymbol}</label>
-               <input
-                 type="text"
-                 value={editRule.readSymbol}
-                 onChange={(e) => setEditRule({...editRule, readSymbol: e.target.value})}
-                 className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-               />
+               <div className="flex gap-2 items-center">
+                 <input
+                   type="text"
+                   value={editRule.readSymbol}
+                   onChange={(e) => setEditRule({...editRule, readSymbol: e.target.value})}
+                   disabled={editRule.readAny}
+                   className={`flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${editRule.readAny ? 'opacity-50 cursor-not-allowed' : ''}`}
+                 />
+                 <label className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap cursor-pointer">
+                   <input
+                     type="checkbox"
+                     checked={editRule.readAny || false}
+                     onChange={(e) => setEditRule({...editRule, readAny: e.target.checked})}
+                     className="rounded border-slate-300 dark:border-slate-600"
+                   />
+                   {language === 'zh' ? '任意' : 'Any'}
+                 </label>
+               </div>
              </div>
              
              <div>
@@ -371,9 +423,9 @@ export default function RuleEditor({
                      <div>
                        <h4 className="font-medium text-slate-900 dark:text-slate-100">{rule.name}</h4>
                         <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                             <span className="mr-2"><strong>{language === 'zh' ? '读取:' : 'Read:'}</strong> {rule.readSymbol}</span>
+                             <span className="mr-2"><strong>{language === 'zh' ? '读取:' : 'Read:'}</strong> {rule.readAny ? (language === 'zh' ? '任意' : 'Any') : rule.readSymbol}</span>
                              <span className="mr-2"><strong>{language === 'zh' ? '写入:' : 'Write:'}</strong> {rule.writeSymbol}</span>
-                             <span className="mr-2"><strong>{language === 'zh' ? '状态:' : 'State:'}</strong> {rule.currentState} → {rule.newState}</span>
+                             <span className="mr-2"><strong>{language === 'zh' ? '状态:' : 'State:'}</strong> {rule.stateAny ? (language === 'zh' ? '任意' : 'Any') : rule.currentState} → {rule.newState}</span>
                             {rule.nextRuleId && (
                               <span className="mr-2"><strong>→</strong> {rules.find(r => r.id === rule.nextRuleId)?.name || (language === 'zh' ? '未知' : 'Unknown')}</span>)}
                             {rule.shouldHalt && <span className="text-red-500"><strong>→ {language === 'zh' ? '停机' : 'Halt'}</strong></span>}

@@ -1,8 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Component, ErrorInfo, ReactNode } from "react";
 import Home from "@/pages/Home";
-import { useState } from "react";
-import { AuthContext } from '@/contexts/authContext';
 
 // 错误边界组件，用于捕获子组件错误
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -45,24 +43,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const logout = () => {
-    setIsAuthenticated(false);
-  };
-
-   return (
-     <AuthContext.Provider
-       value={{ isAuthenticated, setIsAuthenticated, logout }}
-     >
-       <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/other" element={<div className="text-center text-xl">Other Page - Coming Soon</div>} />
-            {/* 添加重定向以处理所有不匹配的路由 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-       </ErrorBoundary>
-     </AuthContext.Provider>
-   );
+  return (
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/other" element={<div className="text-center text-xl">Other Page - Coming Soon</div>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ErrorBoundary>
+  );
 }

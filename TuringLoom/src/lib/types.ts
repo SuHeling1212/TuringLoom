@@ -17,6 +17,8 @@ export type TapeType = '1d';
 /**
  * Interface defining a single Turing Machine rule
  * @property {string} id - 规则唯一标识符，格式为"rule-时间戳"或"rule-时间戳-随机字符串"
+ * @property {boolean} readAny - 是否匹配任意符号（为true时readSymbol被忽略）
+ * @property {boolean} stateAny - 是否匹配任意状态（为true时currentState被忽略）
  */
 export interface TuringMachineRule {
   id: string;
@@ -24,6 +26,8 @@ export interface TuringMachineRule {
   tapeIndex: number;
   currentState: string;
   readSymbol: string;
+  readAny?: boolean;
+  stateAny?: boolean;
   writeSymbol: string;
   moveDirection: MoveDirection;
   newState: string;

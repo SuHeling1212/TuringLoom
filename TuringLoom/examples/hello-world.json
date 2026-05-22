@@ -1,0 +1,122 @@
+{
+  "rules": [
+    {
+      "name": "Write H",
+      "tapeIndex": 0,
+      "currentState": "q0",
+      "readSymbol": "0",
+      "writeSymbol": "H",
+      "moveDirection": "right",
+      "newState": "q1",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write e",
+      "tapeIndex": 0,
+      "currentState": "q1",
+      "readSymbol": "0",
+      "writeSymbol": "e",
+      "moveDirection": "right",
+      "newState": "q2",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write l (1st)",
+      "tapeIndex": 0,
+      "currentState": "q2",
+      "readSymbol": "0",
+      "writeSymbol": "l",
+      "moveDirection": "right",
+      "newState": "q3",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write l (2nd)",
+      "tapeIndex": 0,
+      "currentState": "q3",
+      "readSymbol": "0",
+      "writeSymbol": "l",
+      "moveDirection": "right",
+      "newState": "q4",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write o",
+      "tapeIndex": 0,
+      "currentState": "q4",
+      "readSymbol": "0",
+      "writeSymbol": "o",
+      "moveDirection": "right",
+      "newState": "q5",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write space",
+      "tapeIndex": 0,
+      "currentState": "q5",
+      "readSymbol": "0",
+      "writeSymbol": " ",
+      "moveDirection": "right",
+      "newState": "q6",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write W",
+      "tapeIndex": 0,
+      "currentState": "q6",
+      "readSymbol": "0",
+      "writeSymbol": "W",
+      "moveDirection": "right",
+      "newState": "q7",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write o (2nd)",
+      "tapeIndex": 0,
+      "currentState": "q7",
+      "readSymbol": "0",
+      "writeSymbol": "o",
+      "moveDirection": "right",
+      "newState": "q8",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write r",
+      "tapeIndex": 0,
+      "currentState": "q8",
+      "readSymbol": "0",
+      "writeSymbol": "r",
+      "moveDirection": "right",
+      "newState": "q9",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write l (3rd)",
+      "tapeIndex": 0,
+      "currentState": "q9",
+      "readSymbol": "0",
+      "writeSymbol": "l",
+      "moveDirection": "right",
+      "newState": "q10",
+      "shouldHalt": false
+    },
+    {
+      "name": "Write d & Halt",
+      "tapeIndex": 0,
+      "currentState": "q10",
+      "readSymbol": "0",
+      "writeSymbol": "d",
+      "moveDirection": "right",
+      "newState": "q_halt",
+      "shouldHalt": true
+    }
+  ],
+  "tapeTypes": [
+    {
+      "id": "tape-1",
+      "name": "Output Tape",
+      "type": "1d",
+      "initialContent": "我操你吗"
+    }
+  ]
+}

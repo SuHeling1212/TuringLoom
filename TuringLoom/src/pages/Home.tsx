@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { TapeState, TuringMachineRule } from '@/lib/types';
 import RuleEditor from '@/components/turing-machine/RuleEditor';
@@ -63,10 +63,6 @@ export default function Home() {
    const [currentState, setCurrentState] = useState('q0');
    const [isRunning, setIsRunning] = useState(false);
    const [isHalted, setIsHalted] = useState(false);
-   
-   // Refs to track running and halted states in callbacks
-   const isRunningRef = useRef(isRunning);
-   const isHaltedRef = useRef(isHalted);
   
   // Add a new rule
   const addRule = (rule: Omit<TuringMachineRule, 'id'>) => {
@@ -90,6 +86,8 @@ export default function Home() {
       tapeTypes?: Array<{
         id: string;
         name: string;
+        type?: string;
+        initialContent?: string;
       }>;
     }
 
@@ -102,14 +100,15 @@ export default function Home() {
      // 处理导入的纸带类型
      if (importedData.tapeTypes && importedData.tapeTypes.length > 0) {
         // 创建新的纸带数组
-         const newTapes: TapeState[] = importedData.tapeTypes.map((tapeType, index) => {
+         const newTapes: TapeState[] = importedData.tapeTypes.map((tapeType) => {
           // 获取导入的initialContent，如果没有则使用默认值
           const initialContent = tapeType.initialContent || defaultInitialContent;
           return {
             id: tapeType.id,
             name: tapeType.name,
-            initialContent: initialContent, // 保存初始化内容
-            cells: initialContent.split(''), // 使用导入的初始化内容来初始化cells
+            type: (tapeType.type as TapeState['type']) || '1d',
+            initialContent: initialContent,
+            cells: initialContent.split(''),
             headPosition: Math.min(10, initialContent.length - 1),
           };
         });
@@ -120,9 +119,14 @@ export default function Home() {
      }
      
      // 验证导入的规则格式
+     // 空字符串的 currentState/readSymbol 表示任意（配合 readAny/stateAny）
      const validRules = importedData.rules.filter((rule) => {
-       // 基本验证
-       return rule.currentState && 
+       // 基本验证：stateAny 为 true 时 currentState 可为空，否则必须有值
+       const stateValid = rule.stateAny || (rule.currentState && rule.currentState.length > 0);
+       // readAny 为 true 时 readSymbol 可为空，否则必须是单个字符
+       const readValid = rule.readAny || (rule.readSymbol && rule.readSymbol.length === 1);
+       return stateValid && 
+              readValid &&
               rule.newState && 
               rule.tapeIndex >= 0 &&
               typeof rule.tapeIndex === 'number' &&
@@ -135,14 +139,18 @@ export default function Home() {
      }
      
      // 为导入的规则生成新的ID，避免冲突
+     // 同时处理 readAny/stateAny：空字符串时设置为 true
      const ruleIdMap: Record<string, string> = {};
      const rulesWithNewIds = validRules.map(rule => {
-       const newId = `rule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+       const newId = `rule-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
        ruleIdMap[rule.id] = newId;
        return {
          ...rule,
          id: newId,
-         nextRuleId: undefined // 清除nextRuleId引用，因为它们现在无效
+         // 空字符串时识别为任意
+         readAny: rule.readAny || rule.readSymbol === '',
+         stateAny: rule.stateAny || rule.currentState === '',
+         nextRuleId: undefined
        };
      });
      
@@ -203,13 +211,8 @@ export default function Home() {
       return;
     }
     
-    // Remove the tape with the given ID and update remaining tape names
-    const updatedTapes = tapes
-      .filter(tape => tape.id !== tapeId)
-      .map((tape, index) => ({
-        ...tape,
-         name: `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${index}`
-      }));
+    // Remove the tape with the given ID, keep other tape names unchanged
+    const updatedTapes = tapes.filter(tape => tape.id !== tapeId);
     
     setTapes(updatedTapes);
     
@@ -223,28 +226,61 @@ export default function Home() {
     const matchingRules: TuringMachineRule[] = [];
     
     for (const rule of rules) {
-      // 检查规则是否匹配当前状态
-      if (rule.currentState !== currentState) continue;
+      // 检查规则是否匹配当前状态（stateAny 为 true 时匹配任意状态）
+      if (!rule.stateAny && rule.currentState !== currentState) continue;
       
       // 获取规则对应的纸带
       const tape = tapes[rule.tapeIndex];
       if (!tape || typeof tape.headPosition !== 'number') continue;
       
-    // 检查规则是否匹配当前符号
+    // 检查规则是否匹配当前符号（readAny 为 true 时匹配任意符号）
       const currentSymbol = tape.cells[tape.headPosition] || '0';
-      if (rule.readSymbol === currentSymbol) {
+      if (rule.readAny || rule.readSymbol === currentSymbol) {
         matchingRules.push(rule);
       }
     }
     
-    return matchingRules;
+    // 检测重复规则：相同状态+相同符号+相同纸带（考虑 readAny 和 stateAny）
+    const ruleKeyMap = new Map<string, TuringMachineRule[]>();
+    for (const rule of matchingRules) {
+      // 生成 key：stateAny 时用 "*"，否则用实际状态；readAny 时用 "*"，否则用实际符号
+      const stateKey = rule.stateAny ? '*' : rule.currentState;
+      const symbolKey = rule.readAny ? '*' : rule.readSymbol;
+      const key = `${stateKey}|${symbolKey}|${rule.tapeIndex}`;
+      if (!ruleKeyMap.has(key)) {
+        ruleKeyMap.set(key, []);
+      }
+      ruleKeyMap.get(key)!.push(rule);
+    }
+    
+    // 查找重复的规则组
+    for (const [key, rulesList] of ruleKeyMap) {
+      if (rulesList.length > 1) {
+        const ruleNames = rulesList.map(r => `"${r.name}"`).join(', ');
+        return { matchingRules: [], hasDuplicate: true, duplicateRules: ruleNames, duplicateKey: key };
+      }
+    }
+    
+    return { matchingRules, hasDuplicate: false, duplicateRules: null, duplicateKey: null };
   }, [rules, currentState, tapes]);
 
   // 改进的步进逻辑 - 支持同时执行多个规则
   const handleStep = useCallback(() => {
     if (isHalted) return;
     
-    const matchingRules = findMatchingRules();
+    const result = findMatchingRules();
+    
+    if (result.hasDuplicate) {
+      const errorMsg = currentLanguage === 'zh' 
+        ? `存在重复规则: ${result.duplicateRules}（相同状态、符号、纸带），无法确定执行哪个规则`
+        : `Duplicate rules found: ${result.duplicateRules} (same state, symbol, tape), cannot determine which rule to execute`;
+      toast.error(errorMsg, { position: 'top-right' });
+      setIsHalted(true);
+      setIsRunning(false);
+      return;
+    }
+    
+    const matchingRules = result.matchingRules;
     
     if (matchingRules.length === 0) {
       toast.error(currentLanguage === 'zh' ? '未找到匹配的规则' : 'No matching rules found', { position: 'top-right' });
@@ -359,8 +395,6 @@ export default function Home() {
     
     if (isRunning && !isHalted) {
       interval = window.setInterval(() => {
-        const matchingRules = findMatchingRules();
-
         handleStep();
       }, getSpeedDelay());
     }
@@ -368,7 +402,7 @@ export default function Home() {
     return () => {
       if (interval) window.clearInterval(interval);
     };
-  }, [isRunning, isHalted, getSpeedDelay, handleStep, findMatchingRules]);
+  }, [isRunning, isHalted, getSpeedDelay, handleStep]);
    
    // 处理速度变化
   const handleSpeedChange = (speed: string) => {
@@ -441,9 +475,9 @@ export default function Home() {
              }
              
               // 处理导入的纸带
-              const newTapes = importedTapes.map((tape: any, index: number) => ({
+              const newTapes: TapeState[] = importedTapes.map((tape: any, index: number) => ({
                 id: `tape-imported-${Date.now()}-${index}`,
-                type: '1d', // 只支持一维纸带
+                type: '1d' as const,
                 initialContent: tape.initialContent || defaultInitialContent,
                 cells: tape.cells || (tape.initialContent || defaultInitialContent).padEnd(20, '0').split(''),
                 headPosition: typeof tape.headPosition === 'number' ? tape.headPosition : 0,
@@ -455,7 +489,7 @@ export default function Home() {
              toast.success(`${translations.imported} ${newTapes.length} ${translations.tapes}`, { position: 'top-right' });
            } catch (parseError) {
              console.error('解析纸带失败:', parseError);
-             toast.error(`${translations.failedToImportTapes}: ${parseError.message}`, { position: 'top-right' });
+             toast.error(`${translations.failedToImportTapes}: ${(parseError as Error).message}`, { position: 'top-right' });
            }
          };
          
@@ -531,7 +565,7 @@ export default function Home() {
             onAddRule={addRule}
             onUpdateRule={updateRule}
             onRemoveRule={removeRule}
-            tapeCount={tapes.length}
+            tapes={tapes}
             language={currentLanguage}
             translations={translations}
           />
