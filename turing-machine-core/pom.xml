@@ -11,20 +11,6 @@
 
     <name>Turing Machine Core</name>
     <description>Turing Machine Simulator library compatible with TuringLoom web app</description>
-    <url>https://github.com/SuHeling1212/TuringLoom</url>
-
-    <licenses>
-        <license>
-            <name>MIT License</name>
-            <url>https://opensource.org/licenses/MIT</url>
-        </license>
-    </licenses>
-
-    <scm>
-        <connection>scm:git:git://github.com/SuHeling1212/TuringLoom.git</connection>
-        <developerConnection>scm:git:ssh://github.com:SuHeling1212/TuringLoom.git</developerConnection>
-        <url>https://github.com/SuHeling1212/TuringLoom/tree/main/turing-machine-core</url>
-    </scm>
 
     <properties>
         <maven.compiler.source>26</maven.compiler.source>
@@ -46,14 +32,6 @@
         </dependency>
     </dependencies>
 
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/SuHeling1212/TuringLoom</url>
-        </repository>
-    </distributionManagement>
-
     <build>
         <plugins>
             <plugin>
@@ -64,32 +42,6 @@
                     <source>26</source>
                     <target>26</target>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.2</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
