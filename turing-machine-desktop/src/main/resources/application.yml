@@ -1,0 +1,11 @@
+server:
+  port: 8888
+
+spring:
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      indent_output: true
+  web:
+    resources:
+      static-locations: classpath:/static/
