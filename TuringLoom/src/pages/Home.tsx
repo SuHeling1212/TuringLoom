@@ -4,6 +4,7 @@ import { TapeState, TuringMachineRule } from '@/lib/types';
 import RuleEditor from '@/components/turing-machine/RuleEditor';
 import TapeSimulator from '@/components/turing-machine/TapeSimulator';
 import ControlPanel from '@/components/turing-machine/ControlPanel';
+import { Button } from '@/components/ui';
 import * as api from '@/lib/api';
 
 import { getTranslation } from '@/lib/locales';
@@ -20,32 +21,25 @@ const safeLocalStorage = {
     try {
       window.localStorage?.setItem(key, value);
     } catch {
-      // localStorage not available
     }
   }
 };
 
 export default function Home() {
-  // 语言选择状态管理
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState<'zh' | 'en'>('zh');
   const [translations, setTranslations] = useState(getTranslation('zh'));
-  // 初始化语言设置
   useEffect(() => {
-    // 检查localStorage中是否有保存的语言偏好
     const savedLanguage = safeLocalStorage.getItem('preferredLanguage') as 'zh' | 'en' | null;
     
     if (savedLanguage) {
-      // 应用保存的语言偏好
       setCurrentLanguage(savedLanguage);
       setTranslations(getTranslation(savedLanguage));
     } else {
-      // 显示语言选择界面
       setShowLanguageSelector(true);
     }
   }, []);
   
-  // 处理语言选择
   const handleLanguageSelect = (lang: 'zh' | 'en') => {
     setCurrentLanguage(lang);
     setTranslations(getTranslation(lang));
@@ -53,7 +47,6 @@ export default function Home() {
     setShowLanguageSelector(false);
   };
   
-  // 切换语言处理函数 - 保留现有切换按钮功能
   const toggleLanguage = () => {
     const newLang = currentLanguage === 'zh' ? 'en' : 'zh';
     setCurrentLanguage(newLang);
@@ -61,7 +54,6 @@ export default function Home() {
     safeLocalStorage.setItem('preferredLanguage', newLang);
   };
   
-  // Initial tape state with 20 cells and head in the middle
   const defaultInitialContent = '00000000000000000000';
   const [tapes, setTapes] = useState<TapeState[]>([
     {
@@ -70,21 +62,17 @@ export default function Home() {
       name: 'Main Tape',
       initialContent: defaultInitialContent,
       cells: defaultInitialContent.split(''),
-      headPosition: 0, // 初始位置设置为0，即初始内容的第一位
+      headPosition: 0,
     },
   ]);
   
-  // Initial empty rules array
   const [rules, setRules] = useState<TuringMachineRule[]>([]);
   
-   // Simulation state
    const [currentState, setCurrentState] = useState('q0');
    const [isRunning, setIsRunning] = useState(false);
    const [isHalted, setIsHalted] = useState(false);
   
-  // Add a new rule
   const addRule = (rule: Omit<TuringMachineRule, 'id'>) => {
-    // 添加符号长度校验
     if (rule.writeSymbol.length !== 1) {
       toast.error('写入符号必须是单个字符', { position: 'top-right' });
       return;
@@ -97,8 +85,6 @@ export default function Home() {
     setRules([...rules, newRule]);
   };
 
-  // 改进的文件导入处理
-    // 定义导入数据的接口
     interface ImportData {
       rules: TuringMachineRule[];
       tapeTypes?: Array<{
@@ -115,11 +101,8 @@ export default function Home() {
        return;
      }
      
-     // 处理导入的纸带类型
      if (importedData.tapeTypes && importedData.tapeTypes.length > 0) {
-        // 创建新的纸带数组
          const newTapes: TapeState[] = importedData.tapeTypes.map((tapeType) => {
-          // 获取导入的initialContent，如果没有则使用默认值
           const initialContent = tapeType.initialContent || defaultInitialContent;
           return {
             id: tapeType.id,
@@ -131,17 +114,12 @@ export default function Home() {
           };
         });
        
-        // 更新纸带状态
        setTapes(newTapes);
        toast.info(`已导入 ${newTapes.length} 个纸带`, { position: 'top-right' });
      }
      
-     // 验证导入的规则格式
-     // 空字符串的 currentState/readSymbol 表示任意（配合 readAny/stateAny）
      const validRules = importedData.rules.filter((rule) => {
-       // 基本验证：stateAny 为 true 时 currentState 可为空，否则必须有值
        const stateValid = rule.stateAny || (rule.currentState && rule.currentState.length > 0);
-       // readAny 为 true 时 readSymbol 可为空，否则必须是单个字符
        const readValid = rule.readAny || (rule.readSymbol && rule.readSymbol.length === 1);
        return stateValid && 
               readValid &&
@@ -156,8 +134,6 @@ export default function Home() {
        return;
      }
      
-     // 为导入的规则生成新的ID，避免冲突
-     // 同时处理 readAny/stateAny：空字符串时设置为 true
      const ruleIdMap: Record<string, string> = {};
      const rulesWithNewIds = validRules.map(rule => {
        const newId = `rule-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
@@ -165,14 +141,12 @@ export default function Home() {
        return {
          ...rule,
          id: newId,
-         // 空字符串时识别为任意
          readAny: rule.readAny || rule.readSymbol === '',
          stateAny: rule.stateAny || rule.currentState === '',
          nextRuleId: undefined
        };
      });
      
-     // 更新规则引用
      const updatedRules = rulesWithNewIds.map(rule => {
        if (rule.nextRuleId && ruleIdMap[rule.nextRuleId]) {
          return {
@@ -190,9 +164,7 @@ export default function Home() {
      toast.success(`成功导入 ${validRules.length} 条规则`, { position: 'top-right' });
    };
   
-  // Update an existing rule
   const updateRule = (updatedRule: TuringMachineRule) => {
-    // 添加符号长度校验
     if (updatedRule.writeSymbol.length !== 1) {
       toast.error('写入符号必须是单个字符', { position: 'top-right' });
       return;
@@ -203,38 +175,32 @@ export default function Home() {
     ));
   };
   
-  // Remove a rule
   const removeRule = (ruleId: string) => {
     setRules(rules.filter(rule => rule.id !== ruleId));
   };
   
-    // Add a new tape
-  const addTape = () => {
+    const addTape = () => {
      const newTape: TapeState = {
-      id: `tape-${Date.now()}`, // Use timestamp for unique ID
+      id: `tape-${Date.now()}`,
       type: '1d',
       name: `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${tapes.length}`,
       initialContent: defaultInitialContent,
-      cells: defaultInitialContent.split(''), // 直接使用默认内容分割，不需要额外填充
-      headPosition: 0, // 初始位置设置为0，即初始内容的第一位
+      cells: defaultInitialContent.split(''),
+      headPosition: 0,
     };
     setTapes([...tapes, newTape]);
   };
 
-   // Delete a tape and renumber remaining tapes
-  const handleDeleteTape = (tapeId: string): void => {
-    // Ensure at least one tape remains
+   const handleDeleteTape = (tapeId: string): void => {
     if (tapes.length <= 1) {
       toast.error(translations.atLeastOneTape, { position: 'top-right' });
       return;
     }
     
-    // Remove the tape with the given ID, keep other tape names unchanged
     const updatedTapes = tapes.filter(tape => tape.id !== tapeId);
     
     setTapes(updatedTapes);
     
-    // Show success message
     toast.success(translations.tapeDeleted, { position: 'top-right' });
   };
   
@@ -276,10 +242,8 @@ export default function Home() {
     }
   }, [rules, tapes, currentState, isHalted, currentLanguage]);
 
-   // 模拟速度状态
    const [simulationSpeed, setSimulationSpeed] = useState<string>('medium');
    
-   // 获取速度延迟
    const getSpeedDelay = useCallback(() => {
      switch (simulationSpeed) {
        case 'slow': return 1000;
@@ -290,7 +254,6 @@ export default function Home() {
      }
    }, [simulationSpeed]);
    
-  // 模拟执行控制 - 添加规则执行反馈
   useEffect(() => {
     let interval: number;
     
@@ -305,24 +268,20 @@ export default function Home() {
     };
   }, [isRunning, isHalted, getSpeedDelay, handleStep]);
    
-   // 处理速度变化
-  const handleSpeedChange = (speed: string) => {
+   const handleSpeedChange = (speed: string) => {
     const wasRunning = isRunning;
     
-    // 如果正在运行，先停止再重启以应用新速度
     if (wasRunning) {
       setIsRunning(false);
     }
     
     setSimulationSpeed(speed);
     
-    // 重启模拟
     if (wasRunning) {
       setTimeout(() => setIsRunning(true), 50);
     }
   };
   
-  // 运行/停止模拟
   const handleRun = () => {
     if (!isRunning && isHalted) {
       handleReset();
@@ -330,32 +289,27 @@ export default function Home() {
     setIsRunning(!isRunning);
   };
   
-  // 重置模拟
   const handleReset = useCallback(() => {
     setIsRunning(false);
     setIsHalted(false);
     setCurrentState('q0');
     
-    // 重置纸带到各自的初始状态
     setTapes(tapes.map(tape => {
       const content = tape.initialContent || defaultInitialContent;
       return {
         ...tape,
          cells: content.padEnd(content.length || 20, '0').split(''),
-        headPosition: 0 // 初始位置设置为0，即初始内容的第一位
+        headPosition: 0
       };
     }));
   }, [tapes]);
    
-   // 处理纸带导入
    const handleImportTapes = () => {
      try {
-       // 创建文件输入元素
        const fileInput = document.createElement('input');
        fileInput.type = 'file';
        fileInput.accept = '.json';
        
-       // 文件选择变化时处理
        fileInput.onchange = (e) => {
          const file = (e.target as HTMLInputElement).files?.[0];
          if (!file) {
@@ -363,19 +317,16 @@ export default function Home() {
            return;
          }
          
-         // 读取文件内容
          const reader = new FileReader();
          reader.onload = (event) => {
            try {
              const content = event.target?.result as string;
              const importedTapes = JSON.parse(content);
              
-             // 验证导入的数据格式
              if (!Array.isArray(importedTapes)) {
                throw new Error(translations.invalidTapeFormat);
              }
              
-              // 处理导入的纸带
               const newTapes: TapeState[] = importedTapes.map((tape: any, index: number) => ({
                 id: `tape-imported-${Date.now()}-${index}`,
                 type: '1d' as const,
@@ -385,7 +336,6 @@ export default function Home() {
                 name: tape.name || `${currentLanguage === 'zh' ? '纸带' : 'Tape'} ${index}`
               }));
              
-             // 更新纸带状态
              setTapes(newTapes);
              toast.success(`${translations.imported} ${newTapes.length} ${translations.tapes}`, { position: 'top-right' });
            } catch (parseError) {
@@ -397,7 +347,6 @@ export default function Home() {
          reader.readAsText(file);
        };
        
-       // 触发文件选择对话框
        fileInput.click();
      } catch (error) {
        console.error('导入纸带失败:', error);
@@ -405,20 +354,12 @@ export default function Home() {
      }
    };
 
-  // 设置单个纸带的初始内容并立即应用
   const handleSetInitialContent = (tapeId: string, content: string) => {
-    // 确保内容不为空，使用默认值作为后备
-    const validContent = content || defaultInitialContent;
-    
     setTapes(tapes.map(tape => 
       tape.id === tapeId 
         ? { 
             ...tape, 
             initialContent: content,
-            // 立即更新cells数组以显示变化
-            cells: validContent.split(''),
-             // 设置纸带头位置到初始内容的第一位
-            headPosition: 0
           }
         : tape
     ));
@@ -427,7 +368,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Header */}
       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className={`text-2xl font-bold text-blue-600 ${
@@ -436,25 +376,25 @@ export default function Home() {
             {translations.appTitle}
           </h1>
           <div className="flex items-center gap-2">
-             <button 
+             <Button 
+              variant="secondary"
               onClick={toggleLanguage}
-              className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-md text-sm font-medium shadow-sm hover:shadow transition-all flex items-center"
+              icon={<i className="fa-solid fa-globe"></i>}
             >
-              <i className="fa-solid fa-globe mr-2"></i> {currentLanguage === 'zh' ? '中文' : 'English'}
-            </button>
-            <button 
+              {currentLanguage === 'zh' ? '中文' : 'English'}
+            </Button>
+            <Button 
+              variant="primary"
               onClick={addTape}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium shadow-sm hover:shadow transition-all flex items-center"
+              icon={<i className="fa-solid fa-plus"></i>}
             >
-              <i className="fa-solid fa-plus mr-2"></i> {translations.newTape}
-            </button>
+              {translations.newTape}
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 container mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Rule Editor Panel */}
         <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
             <h2 className={`text-xl font-semibold text-slate-800 dark:text-slate-200 ${
@@ -472,7 +412,6 @@ export default function Home() {
           />
         </div>
 
-        {/* Tape Simulation Panel */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex justify-between items-center">
@@ -480,12 +419,14 @@ export default function Home() {
                 currentLanguage === 'zh' ? 'font-sans' : 'font-mono'
               }`}>{translations.tapeSimulation}</h2>
               <div className="flex items-center gap-3">
-                <button 
+                <Button 
+                  variant="success"
+                  size="sm"
                   onClick={addTape}
-                  className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium shadow-sm hover:shadow transition-all flex items-center"
+                  icon={<i className="fa-solid fa-plus"></i>}
                 >
-                  <i className="fa-solid fa-plus mr-1"></i> {translations.addTape}
-                </button>
+                  {translations.addTape}
+                </Button>
                 <div className={`text-sm bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full ${
                   currentLanguage === 'zh' ? 'font-sans' : 'font-mono'
                 }`}>
@@ -501,12 +442,13 @@ export default function Home() {
                  onSetInitialContent={handleSetInitialContent}
                  language={currentLanguage}
                  translations={translations}
+                 isRunning={isRunning}
+                 isHalted={isHalted}
                />
             </div>
           </div>
 
-           {/* Control Panel */}
-             <ControlPanel 
+           <ControlPanel 
               isRunning={isRunning}
               isHalted={isHalted}
               onStep={handleStep}
@@ -524,32 +466,34 @@ export default function Home() {
         </div>
       </main>
 
-        {/* 语言选择模态框 */}
         {showLanguageSelector && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-w-md p-6 transform transition-all duration-300 scale-100">
               <h2 className="text-2xl font-bold mb-6 text-center text-slate-800 dark:text-slate-200">{translations.welcome}</h2>
               <p className="text-center text-slate-600 dark:text-slate-400 mb-8">{translations.selectLanguagePrompt}</p>
               <div className="flex gap-4">
-                <button
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
                   onClick={() => handleLanguageSelect('zh')}
-                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors text-lg"
                 >
                   {translations.chinese}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
                   onClick={() => handleLanguageSelect('en')}
-                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors text-lg"
                 >
                   {translations.english}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         )}
 
 
-      {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-4">
         <div className="container mx-auto px-4 text-center text-sm text-slate-500 dark:text-slate-400">
           {translations.turingMachineSimulator} &copy; {new Date().getFullYear()}

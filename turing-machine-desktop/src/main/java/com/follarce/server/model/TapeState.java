@@ -39,12 +39,6 @@ public class TapeState {
     public String getInitialContent() { return initialContent; }
     public void setInitialContent(String initialContent) {
         this.initialContent = initialContent;
-        if (initialContent != null && !initialContent.isEmpty()) {
-            this.cells = new ArrayList<>();
-            for (char c : initialContent.toCharArray()) {
-                this.cells.add(String.valueOf(c));
-            }
-        }
     }
 
     public String getCurrentSymbol() {

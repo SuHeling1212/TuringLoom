@@ -16,14 +16,21 @@ import java.io.File;
 public class DesktopApplication extends Application {
 
     private static String[] savedArgs;
+    private static FileService fileService = new FileService();
 
     public static void main(String[] args) {
         savedArgs = args;
         Application.launch(DesktopApplication.class, args);
     }
+    
+    public static FileService getFileService() {
+        return fileService;
+    }
 
     @Override
     public void start(Stage stage) {
+        fileService.setStage(stage);
+        
         new Thread(() -> {
             SpringApplication.run(DesktopApplication.class, savedArgs);
         }).start();

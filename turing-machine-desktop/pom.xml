@@ -39,6 +39,11 @@
             <artifactId>javafx-web</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.follarce</groupId>
+            <artifactId>turing-machine-core</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

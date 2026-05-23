@@ -1,4 +1,5 @@
 import { TapeState } from "@/lib/types";
+import { Button, Input } from "@/components/ui";
 
 interface TapeSimulatorProps {
     tapes: TapeState[];
@@ -6,6 +7,8 @@ interface TapeSimulatorProps {
     onSetInitialContent: (tapeId: string, content: string) => void;
     language: "zh" | "en";
     translations: any;
+    isRunning: boolean;
+    isHalted: boolean;
 }
 
 export default function TapeSimulator(
@@ -14,9 +17,13 @@ export default function TapeSimulator(
         onDeleteTape,
         onSetInitialContent,
         language,
-        translations
+        translations,
+        isRunning,
+        isHalted
     }: TapeSimulatorProps
 ) {
+    const canEdit = !isRunning && !isHalted;
+
     return (
         <div className="space-y-8">
             {tapes.map(tape => <div key={tape.id} className="space-y-2">
@@ -27,32 +34,36 @@ export default function TapeSimulator(
                     <div className="flex items-center gap-3">
                         <div className="text-sm text-slate-500 dark:text-slate-400">Head Position: {tape.headPosition}
                         </div>
-                        <button
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => onDeleteTape(tape.id)}
-                            disabled={tapes.length <= 1}
-                            className={`p-1.5 rounded-full transition-colors ${tapes.length <= 1 ? "text-slate-300 dark:text-slate-600 cursor-not-allowed" : "text-red-500 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30"}`}
-                            title={tapes.length <= 1 ? "至少需要保留一个纸带" : "删除纸带"}>
+                            disabled={tapes.length <= 1 || !canEdit}
+                            className={tapes.length <= 1 || !canEdit ? "text-slate-300 dark:text-slate-600" : "text-red-500 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30"}
+                            title={!canEdit ? (language === "zh" ? "运行时不可删除" : "Cannot delete while running") : (tapes.length <= 1 ? "至少需要保留一个纸带" : "删除纸带")}
+                        >
                             <i className="fa-solid fa-trash"></i>
-                        </button>
+                        </Button>
                     </div>
                 </div>
-                {}
                 <div className="flex items-center gap-3">
                     <label
                         className={`text-sm font-medium text-slate-700 dark:text-slate-300 w-24 ${language === "zh" ? "font-sans" : "font-mono"}`}>
                         {translations.initialTapeContent}:
-                                    </label>
-                    <input
+                    </label>
+                    <Input
                         type="text"
                         value={tape.initialContent || ""}
-                        onChange={e => onSetInitialContent(tape.id, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                        onChange={e => {
+                            if (canEdit) {
+                                onSetInitialContent(tape.id, e.target.value);
+                            }
+                        }}
+                        disabled={!canEdit}
                         placeholder={language === "zh" ? "输入初始符号，例如00101" : "Enter initial symbols, e.g., 00101"}
-                        maxLength={50} />
-                    {}
-                    <></>
+                        maxLength={50}
+                    />
                 </div>
-                {}
                 <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 overflow-x-auto">
                     <div
                         className="inline-flex items-center space-x-0.5 min-w-full justify-center">

@@ -1,6 +1,6 @@
 # TuringLoom - 图灵机模拟器
 
-一个美观、功能丰富的图灵机可视化模拟器，支持桌面应用和 Web 两种运行方式。
+一个美观、功能丰富的图灵机可视化模拟器，支持 JavaFX、Electron 桌面应用和 Web 三种运行方式。
 
 ---
 
@@ -28,7 +28,7 @@ TuringLoom 是一个基于 React + TypeScript + Tailwind CSS + Spring Boot 构�
 | 动画库 | Framer Motion |
 | 后端框架 | Spring Boot 4.0 |
 | 运行环境 | Java 26 |
-| 桌面框架 | JavaFX |
+| 桌面框架 | JavaFX / Electron |
 | 包管理器 | pnpm / Maven |
 
 ## 项目结构
@@ -91,16 +91,25 @@ TuringLoom/
 │   │   └── static/                # 前端构建产物
 │   └── pom.xml
 │
+├── turing-machine-electron/       # Electron 桌面应用
+│   ├── main.js                    # Electron 主进程
+│   ├── preload.js                 # 预加载脚本
+│   ├── package.json               # 项目配置
+│   ├── build.sh                   # 构建脚本
+│   ├── start.sh                   # 启动脚本
+│   └── dist.sh                    # 打包脚本
+│
 ├── start.sh                       # 前端开发启动脚本
 ├── start-all.sh                   # 前后端同时启动脚本
 ├── run.sh                         # 后端服务启动脚本
-├── run-desktop.sh                 # 桌面应用启动脚本
+├── run-desktop.sh                 # JavaFX 桌面应用启动脚本
+├── run-electron.sh                # Electron 桌面应用启动脚本
 └── 读我.md                        # 中文文档
 ```
 
 ## 运行方式
 
-### 方式一：桌面应用（推荐）
+### 方式一：JavaFX 桌面应用
 
 ```bash
 # 确保已安装 Java 26+ 和 Maven
@@ -115,7 +124,32 @@ java --enable-native-access=ALL-UNNAMED -jar target/turing-machine-desktop-1.0.0
 ./run-desktop.sh
 ```
 
-### 方式二：Web 开发模式
+### 方式二：Electron 桌面应用（内置 Java，无需安装）
+
+```bash
+# 确保已安装 Node.js 18+ 和 pnpm
+cd turing-machine-electron
+./build-full.sh    # 完整构建（包含嵌入式 JRE）
+```
+
+或使用启动脚本：
+
+```bash
+./run-electron.sh
+```
+
+打包分发（用户无需安装 Java）：
+
+```bash
+cd turing-machine-electron
+./build-full.sh        # 一键构建所有平台
+# 或单独打包
+pnpm dist:mac          # macOS (DMG + ZIP)
+pnpm dist:win          # Windows (安装包 + 便携版)
+pnpm dist:linux        # Linux (AppImage + DEB)
+```
+
+### 方式三：Web 开发模式
 
 ```bash
 # 终端 1：启动后端服务
@@ -128,7 +162,7 @@ pnpm install
 pnpm dev
 ```
 
-### 方式三：Web 生产模式
+### 方式四：Web 生产模式
 
 ```bash
 # 构建前端
@@ -168,7 +202,7 @@ mvn spring-boot:run
 
 ## 作者
 
-**Follarce** - 组织项目开发
+**SuHeling**
 
 ## 许可证
 
